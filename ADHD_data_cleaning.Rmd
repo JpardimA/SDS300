@@ -1,0 +1,132 @@
+---
+title: "ADHD_data_cleaning"
+author: "Jessica pardim Araujo"
+date: "2023-05-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning=F, message=F}
+library(tidyverse)
+library(readr)
+library(stringr)
+library(psych)
+library(mosaic)
+library(dplyr)
+load(file="./21600-0001-Data.rda")
+load(file="./21600-0008-Data.rda")
+load(file="./21600-0032-Data.rda")
+```
+
+```{r}
+da21600.0001 <- da21600.0001 %>% 
+  select(AID, PA1, PA55, PA12, H1RM4, H1RF4, PB8, PA10)
+
+da21600.0008 <- da21600.0008 %>% 
+  select(AID, H3RA1:H3RA18) 
+
+da21600.0032 <- da21600.0032 %>% 
+  select(AID, H5OD11, H5ID1, H5PE4, H5PE5, H5PE6, H5PE7, H5ID6G, H5ID6I, H5CJ3, H5OD4A:H5OD4G, H5OD1Y, H5OD2A, IYEAR5)
+```
+
+PA1 = Respondents sex H5OD11 - Higher the number, higher the degree
+
+```{r}
+# Joining the datasets by ID number. First by wave 3 (ADHD asses.) and wave 5 (IVs). Second by the DF from previous join and wave 1 (income parents.)
+
+df1 <- da21600.0008 %>%
+  inner_join(da21600.0032, by="AID")
+  
+df1 <- df1 %>%
+  inner_join(da21600.0001, by="AID")
+```
+
+# Cleaning
+
+```{r}
+
+## ADHD_Scale
+df1 <- df1 %>% 
+   mutate(H3RA1 = as.numeric(str_sub(H3RA1, 2, 2)),
+          H3RA2 = as.numeric(str_sub(H3RA2, 2, 2)),
+          H3RA3 = as.numeric(str_sub(H3RA3, 2, 2)),
+          H3RA4 = as.numeric(str_sub(H3RA4, 2, 2)),
+          H3RA5 = as.numeric(str_sub(H3RA5, 2, 2)),
+          H3RA6 = as.numeric(str_sub(H3RA6, 2, 2)),
+          H3RA7 = as.numeric(str_sub(H3RA7, 2, 2)),
+          H3RA8 = as.numeric(str_sub(H3RA8, 2, 2)),
+          H3RA9 = as.numeric(str_sub(H3RA9, 2, 2)),
+          H3RA10 = as.numeric(str_sub(H3RA10, 2, 2)),
+          H3RA11 = as.numeric(str_sub(H3RA11, 2, 2)),
+          H3RA12 = as.numeric(str_sub(H3RA12, 2, 2)),
+          H3RA13 = as.numeric(str_sub(H3RA13, 2, 2)),
+          H3RA14 = as.numeric(str_sub(H3RA14, 2, 2)),
+          H3RA15 = as.numeric(str_sub(H3RA15, 2, 2)),
+          H3RA16 = as.numeric(str_sub(H3RA16, 2, 2)),
+          H3RA17 = as.numeric(str_sub(H3RA17, 2, 2)),
+          H3RA18 = as.numeric(str_sub(H3RA18, 2, 2)))
+
+df1 <- df1 %>% 
+   mutate(PA1 = as.numeric(str_sub(PA1, 2, 2)))%>% 
+   mutate(PA12 = as.numeric(str_sub(PA12, 2, 3)))%>% 
+   mutate(H1RM4 = as.numeric(str_sub(H1RM4, 2, 3)))%>%  
+   mutate(H1RF4 = as.numeric(str_sub(H1RF4, 2, 3)))
+  
+```
+
+## ADHD
+
+```{r}
+#Dichotomizing variables to decide if it each individual shows ADHD symptoms.
+
+df1 <- df1 %>% 
+  mutate(H3RA1 = ifelse(H3RA1 > 1, 1,0),
+         H3RA2 = ifelse(H3RA2 > 1, 1,0),
+         H3RA3 = ifelse(H3RA3 > 1, 1,0),
+         H3RA4 = ifelse(H3RA4 > 1, 1,0),
+         H3RA5 = ifelse(H3RA5 > 1, 1,0),
+         H3RA6 = ifelse(H3RA6 > 1, 1,0),
+         H3RA7 = ifelse(H3RA7 > 1, 1,0),
+         H3RA8 = ifelse(H3RA8 > 1, 1,0),
+         H3RA9 = ifelse(H3RA9 > 1, 1,0),
+         H3RA10 = ifelse(H3RA10 > 1, 1,0),
+         H3RA11 = ifelse(H3RA11 > 1, 1,0),
+         H3RA12 = ifelse(H3RA12 > 1, 1,0),
+         H3RA13 = ifelse(H3RA13 > 1, 1,0),
+         H3RA14 = ifelse(H3RA14 > 1, 1,0),
+         H3RA15 = ifelse(H3RA15 > 1, 1,0),
+         H3RA16 = ifelse(H3RA16 > 1, 1,0),
+         H3RA17 = ifelse(H3RA17 > 1, 1,0),
+         H3RA18 = ifelse(H3RA18 > 1, 1,0))
+
+# Creating a variable for yes ADHD and no ADHD separated by inattentive, hyperactive and combined is not possible because the sample is small.
+
+df1 <- df1 %>% 
+  rowwise() %>% 
+  mutate(ADHD_I = ifelse(sum(H3RA1, H3RA3, H3RA5, H3RA7, H3RA9, H3RA11, H3RA13, H3RA15, H3RA17, na.rm=TRUE) > 5, 1, 0)) %>% 
+  mutate(ADHD_H = ifelse(sum(H3RA2, H3RA4, H3RA6, H3RA8, H3RA10, H3RA12, H3RA14, H3RA16, H3RA18, na.rm=TRUE) > 5, 1, 0)) %>% 
+  mutate(ADHD = ifelse(ADHD_I==1 | ADHD_H==1, 1, 0))
+
+# Separating ADHD from non-ADHD
+
+adhd_data <- df1 %>% 
+  filter(ADHD == 1)
+
+# Randomly selecting (under sampling) 270 non-adhd sample
+
+set.seed(42)
+no_adhd <- df1 %>% 
+  filter(ADHD == 0) %>% 
+  sample(270) %>% 
+  select (-orig.id)
+
+# Joining ADHD and non-ADHD dataset
+
+dfA <- rbind(no_adhd,adhd_data)
+
+write_csv(dfA,"dfB.csv")
+
+```

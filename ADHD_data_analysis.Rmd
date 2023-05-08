@@ -1,0 +1,554 @@
+---
+title: "ADHD_data_analysis"
+author: "Jessica pardim Araujo"
+date: "2023-05-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning=F, message=F}
+library(tidyverse)
+library(readr)
+library(stringr)
+library(psych)
+library(mosaic)
+library(dplyr)
+library(stargazer)
+dfB <- read_csv("dfB.csv")
+```
+
+# Make all IV, DVs dichotomized
+
+```{r}
+
+# Education descriptive stats
+
+# Respondent's Education (Bachelor's and up 1)
+
+dfB <- dfB %>%
+ mutate(education = ifelse(H5OD11 > 9, 1, 0))
+
+# I go out of my way to avoid having to deal with problems in my life (0- Disagree, 1- Agree)
+
+dfB <- dfB %>%
+  mutate(avoidProblem = ifelse (H5PE4 > 2, 0, 1))
+
+# When making a decision, I go with my 'gut feeling' and do not think much about the consequences of each alternative. (0- Disagree, 1- Agree)
+
+dfB <- dfB %>%
+  mutate (gutFeeling = ifelse (H5PE5 >  2, 0, 1))
+
+# I like to take risks (0- Disagree, 1- Agree)
+
+dfB <- dfB %>%
+  mutate (takeRisks = ifelse (H5PE6 > 2, 0, 1))
+
+# I finish whatever I begin (0- Disagree, 1- Agree)
+
+dfB <- dfB %>%
+  mutate (finishTask = ifelse (H5PE7 > 2, 0, 1))
+
+# Physical Health (self-reported, 0 - fair and poor, 1- excellent, very good and good)
+
+dfB <- dfB %>%
+  mutate (PhysHealth = ifelse (H5ID1 > 3, 0, 1))
+
+# Depression, Anxiety and `have you ever been arrested`, is already dichotomized. (0-no, 1-yes)
+
+dfB <- dfB %>%
+  rename (depression = H5ID6G,
+          anxiety_panic =	H5ID6I,
+          arrested = H5CJ3)
+
+#Age
+
+dfB <- dfB %>%
+  mutate (age = IYEAR5 - H5OD1Y)
+
+#Race
+
+dfB <- dfB %>%
+  mutate(race = ifelse(as.factor(H5OD4A) == 1, 1,
+                ifelse(as.factor(H5OD4B) == 1, 2,
+                ifelse(as.factor(H5OD4C) == 1, 3,
+                ifelse(as.factor(H5OD4D) == 1, 4,
+                ifelse(as.factor(H5OD4E) == 1, 5,
+                ifelse(as.factor(H5OD4F) == 1, 5,
+                ifelse(as.factor(H5OD4G) == 1, 5, "no"))))))))
+```
+
+# Demographics
+
+```{r}
+#Age
+
+#H5OD1Y - Birth Year on Wave 5
+#IYEAR5 - Year data was collected 
+
+favstats(dfA$age)
+table(dfA$age)
+
+#Sex
+
+#H5OD2A - Sex assigned at birth (1-Male, 2-Female) Wave 5
+# 277 Male and 263 Female
+
+dfA$H5OD2A <- as.factor(dfA$H5OD2A)
+
+table (dfA$H5OD2A)
+
+#Race and ethnicity 
+
+#H1GI4 - Hispanic or Latino (0-no, 1-yes) - Wave 1
+#H5OD4A:H5OD4G - Race 
+
+table (dfA$race)
+
+393/540*100 #72.77
+89/540*100 #16.48
+37/540*100 #6.85
+9/540*100 #1.66
+9/540*100 #1.66 - native, other and pacific together
+
+
+```
+
+# Checking ADHD Scale
+
+#ADHD
+
+```{r}
+#Results are mostly under than 0.5 (except H3RA14 and H3RA16 - Hyperactive questions)
+corr.test(select(dfA, H3RA1,H3RA3, H3RA5, H3RA7, H3RA9, H3RA11, H3RA13, H3RA15, H3RA17,H3RA2, H3RA4, H3RA6, H3RA8, H3RA10, H3RA12, H3RA14, H3RA16, H3RA18))$r
+
+#cronbachs alpha (internal validity)
+# alpha = 0.90
+alpha(select(dfA, H3RA1,H3RA3, H3RA5, H3RA7, H3RA9, H3RA11, H3RA13, H3RA15, H3RA17, H3RA2, H3RA4, H3RA6, H3RA8, H3RA10, H3RA12, H3RA14, H3RA16, H3RA18))
+
+dfA$adhd_mean <- rowMeans(select(dfA, H3RA1,H3RA3, H3RA5, H3RA7, H3RA9, H3RA11, H3RA13, H3RA15, H3RA17, H3RA2, H3RA4, H3RA6, H3RA8, H3RA10, H3RA12, H3RA14, H3RA16), na.rm = TRUE)
+
+favstats(dfA$adhd_mean)
+
+```
+
+# ADHD Hyperactivity/ Impulsivity
+
+```{r}
+#Should dichotomize or use overall score?
+
+corr.test(select(dfA, H3RA2, H3RA4, H3RA6, H3RA8, H3RA10, H3RA12, H3RA14, H3RA16,H3RA18 ))$r
+
+#cronbachs alpha (internal validity)
+alpha(select(dfA, H3RA2, H3RA4, H3RA6, H3RA8, H3RA10, H3RA12, H3RA14, H3RA16, H3RA18))
+
+dfA$adhd_H <- rowMeans(select(dfA, H3RA2, H3RA4, H3RA6, H3RA8, H3RA10, H3RA12, H3RA14, H3RA16), na.rm = TRUE)
+
+favstats(df1$adhd_H)
+
+qplot(x = adhd_H, data = dfA, bins = 12)
+
+```
+
+# ADHD Inattentive
+
+```{r}
+#Should dichotomize or use overall score?
+
+corr.test(select(dfA, H3RA1,H3RA3, H3RA5, H3RA7, H3RA9, H3RA11, H3RA13, H3RA15, H3RA17))$r
+
+#cronbachs alpha (internal validity)
+alpha(select(dfA, H3RA1,H3RA3, H3RA5, H3RA7, H3RA9, H3RA11, H3RA13, H3RA15, H3RA17))
+
+dfA$adhd_I <- rowMeans(select(dfA, H3RA1,H3RA3, H3RA5, H3RA7, H3RA9, H3RA11, H3RA13, H3RA15, H3RA17), na.rm = TRUE)
+
+favstats(dfA$adhd_I)
+
+qplot(x = adhd_I, data = dfA, bins = 12)
+
+```
+
+# Social Economical Status
+
+Parental Questionnaire PA1 (Parent respondent's sex, 1- Male, 2 Female) PA55 (household income) PA12 (parent education) PA10 (marital status) PB2 (Partner sex) PB8 (Partner education) Respondent Questionnaire H1RM4 (Mother work) H1RF4 (Father work)
+
+```{r}
+# Social Economical Status
+## Modifying income variable to Kuppuswamy scale
+
+dfB <- dfB %>% 
+  mutate(PA55 = PA55*1000) %>% 
+  mutate(income = if_else(PA55/12 <= 920, 1,
+                  if_else(PA55/12 > 921 & PA55/12 < 2733, 2,
+                  if_else(PA55/12 > 2734 & PA55/12 < 4556, 3,
+                  if_else(PA55/12 > 4557 & PA55/12 < 6835, 4,
+                  if_else(PA55/12 > 6836 & PA55/12 < 9114, 6,
+                  if_else(PA55/12 > 9115 & PA55/12 < 18229, 10,
+                  if_else(PA55/12 >= 18229, 12, 0))))))))
+
+view(dfB$income)
+
+sum(is.na(dfB$income))
+table(dfB$income)
+  
+# Education
+
+## Respondent Education
+
+dfB <- dfB %>% 
+  mutate(R_education = ifelse(PA12 %in% c(1, 2, 3), 3,
+                       ifelse(PA12 %in% c(5, 7, 4), 4,
+                       ifelse(PA12 %in% c(6, 8), 5,
+                       ifelse(PA12 == 9, 6, 
+                       ifelse(PA12 == 10, 1, 0))))))
+
+view(dfB$R_education)
+table(dfB$R_education)
+
+## Partner Education
+
+dfB <- dfB %>% 
+  mutate(P_education = as.numeric(str_sub(PB8, 2, 3))) %>% 
+  mutate(P_education = ifelse(P_education %in% c(1, 2, 3), 3,
+                       ifelse(P_education %in% c(4, 5, 7), 4,
+                       ifelse(P_education %in% c(6, 8), 5,
+                       ifelse(P_education == 9, 6, 
+                       ifelse(P_education == 10, 1, 0))))))
+
+
+
+view(dfB$P_education)
+table(dfB$P_education)
+
+
+## Marital Status 
+
+### 1 - Single/never married
+### 2 - Married
+### 3 - Widowed 
+### 4 - Divorced
+### 5 - Separated
+
+dfB <- dfB %>% 
+  mutate(marital = as.numeric(str_sub(PA10, 2, 2)))
+
+table(dfB$PA10)
+view(dfB$marital)
+
+## Occupation
+
+### Mother 
+
+dfB <- dfB %>% 
+  mutate(M_occupation = ifelse(H1RM4 == 15, 1,
+                       ifelse(H1RM4 == 14, 2,
+                       ifelse(H1RM4 %in% c(7,11,12), 3,
+                       ifelse(H1RM4 %in% c(8,9,10,13), 4,
+                       ifelse(H1RM4 %in% c(4,5,6), 5,
+                       ifelse(H1RM4 %in% c(2,3),6,
+                       ifelse(H1RM4 == 1, 10, 0))))))))
+
+table(dfB$M_occupation)
+view(dfB$H1RM4)
+
+
+### Father 
+
+dfB <- dfB %>% 
+  mutate(F_occupation = ifelse(H1RF4 == 15, 1,
+                       ifelse(H1RF4 == 14, 2,
+                       ifelse(H1RF4 %in% c(7,11,12), 3,
+                       ifelse(H1RF4 %in% c(8,9,10,13), 4,
+                       ifelse(H1RF4 %in% c(4,5,6), 5,
+                       ifelse(H1RF4 %in% c(2,3),6,
+                       ifelse(H1RF4 == 1, 10, 0))))))))
+
+table(dfB$F_occupation)
+view(dfB$F_occupation)
+
+# Choosing Head of household based in scores
+## Create new variable containing highest value between columns
+dfB$head_education <- pmax(dfB$P_education, dfB$R_education, na.rm = TRUE)
+
+dfB$head_occupation <- pmax(dfB$M_occupation, dfB$F_occupation, na.rm = TRUE)
+
+
+# Creating SES ordinal variable
+dfB <- dfB %>% 
+    rowwise() %>% 
+    mutate (SES_ordinal = sum(head_education, head_occupation, income, na.rm=TRUE))  
+
+# Creating SES nominal value
+
+dfB <- dfB %>% 
+    rowwise() %>% 
+    mutate(SES_class = ifelse(sum(head_education, head_occupation, income, na.rm=TRUE) < 5, "Lower",
+                   ifelse(sum(head_education, head_occupation, income, na.rm=TRUE) >= 5 & sum(head_education, head_occupation, income, na.rm=TRUE) <= 10,  "LowerMiddle",
+                   ifelse(sum(head_education, head_occupation, income, na.rm=TRUE) >= 11 & sum(head_education, head_occupation, income, na.rm=TRUE) <= 15, "Middle",
+                   ifelse(sum(head_education, head_occupation, income, na.rm=TRUE) >= 16 & sum(head_education, head_occupation, income, na.rm=TRUE) <= 25, "UpperMiddle",
+                    ifelse(sum(head_education, head_occupation, income, na.rm=TRUE) == 26, "UpperClass", "unknown"))))))
+
+
+#Stats
+
+qplot(dfB$SES_ordinal, bins=18)
+
+table(dfB$SES_class)
+
+favstats(dfB$SES_ordinal)
+
+table(dfB$SES_class)
+view(dfB$SES_class)
+
+summary (dfB$SES_ordinal)
+
+```
+
+# Logistic Regression Models
+
+```{r}
+
+#SES is based on when they grew up, not currently. 
+
+# Odds of completing Education (1= bachelors+, 0 = less than bachelors)
+adhd1 <- glm(education ~ ADHD, data = dfB, family = "binomial")
+
+summary (adhd1)
+
+adhd1.1 <- glm(education ~ ADHD*SES_ordinal, data = dfB, family = "binomial")
+
+summary (adhd1.1)
+
+# Odds of avoiding problems (0- Disagree, 1- Agree)
+adhd2 <- glm(avoidProblem ~ ADHD, data = dfB, family = "binomial")
+
+summary (adhd2)
+
+adhd2.1 <- glm(avoidProblem ~ ADHD*SES_ordinal, data = dfB, family = "binomial")
+
+summary (adhd2.1)
+
+# Odds of going with the gut feeling (0- Disagree, 1- Agree)
+adhd3 <- glm(gutFeeling ~ ADHD, data = dfB, family = "binomial")
+
+adhd3.1 <- glm(gutFeeling ~ ADHD*SES_ordinal, data = dfB, family = "binomial")
+
+summary (adhd3)
+
+summary (adhd3.1)
+
+# Odds of liking to take risks (0- Disagree, 1- Agree)
+adhd4 <- glm(takeRisks ~ ADHD, data = dfB, family = "binomial")
+
+adhd4.1 <- glm(takeRisks ~ ADHD*SES_ordinal, data = dfB, family = "binomial")
+
+summary (adhd4)
+
+
+summary (adhd4.1)
+
+# Odds of finishing whatever I begin (0- Disagree, 1- Agree)
+
+adhd5 <- glm(finishTask ~ ADHD, data = dfB, family = "binomial")
+
+summary (adhd5)
+
+adhd5.1 <- glm(finishTask ~ ADHD*SES_ordinal, data = dfB, family = "binomial")
+
+summary (adhd5)
+summary (adhd5.1)
+
+# Odds of reporting Physical Health (0- Disagree, 1- Agree)
+
+adhd6 <- glm(PhysHealth ~ ADHD, data = dfB, family = "binomial")
+
+summary (adhd6)
+
+adhd6.1 <- glm(PhysHealth ~ ADHD*SES_ordinal, data = dfB, family = "binomial")
+
+summary (adhd6)
+summary (adhd6.1)
+
+# Odds of depression(0- Disagree, 1- Agree)
+
+adhd7 <- glm(depression ~ ADHD, data = dfB, family = "binomial")
+
+summary (adhd7)
+
+adhd7.1 <- glm(depression ~ ADHD*SES_ordinal, data = dfB, family = "binomial")
+
+summary (adhd7)
+summary (adhd7.1)
+
+# Odds of anxiety and panic (0- Disagree, 1- Agree)
+
+adhd8 <- glm(anxiety_panic ~ ADHD, data = dfB, family = "binomial")
+
+summary (adhd8)
+
+adhd8.1 <- glm(anxiety_panic ~ ADHD*SES_ordinal, data = dfB, family = "binomial")
+
+summary (adhd8)
+summary (adhd8.1)
+
+# Odds of being arrested (0=no, 1=yes)
+
+adhd9 <- glm(arrested ~ ADHD, data = dfB, family = "binomial")
+
+summary (adhd9)
+
+adhd9.1 <- glm(arrested ~ ADHD*SES_ordinal, data = dfB, family = "binomial")
+
+summary (adhd9)
+summary (adhd9.1)
+
+```
+
+# Residuals
+
+## Checking Logistic Regression Conditions
+
+```{r}
+
+# Multicollinearity
+
+vif(adhd1.1,type=c("predictor"))
+
+?vif
+
+# Goodness-of-fit: AIC and BIC, chi-squared
+
+anova(adhd1.1, adhd1, test="Chisq")
+
+### AIC comparison
+AIC(adhd1)
+AIC(adhd1.1)
+
+# BIC Comparison
+BIC(adhd1)
+BIC(adhd1.1)
+
+
+adhd1.1$AIC <- AIC(adhd1.1)
+adhd1$AIC <- AIC(adhd1)
+
+adhd1.1$BIC <- BIC(adhd1.1)
+adhd1$BIC <- BIC(adhd1)
+
+adhd2.1$BIC <- BIC(adhd2.1)
+adhd2$BIC <- BIC(adhd2)
+
+adhd3.1$BIC <- BIC(adhd3.1)
+adhd3$BIC <- BIC(adhd3)
+
+adhd4.1$BIC <- BIC(adhd4.1)
+adhd4$BIC <- BIC(adhd4)
+
+adhd5.1$BIC <- BIC(adhd5.1)
+adhd5$BIC <- BIC(adhd5)
+
+adhd6.1$BIC <- BIC(adhd6.1)
+adhd6$BIC <- BIC(adhd6)
+
+adhd7.1$BIC <- BIC(adhd7.1)
+adhd7$BIC <- BIC(adhd7)
+
+adhd8.1$BIC <- BIC(adhd8.1)
+adhd8$BIC <- BIC(adhd8)
+
+adhd9.1$BIC <- BIC(adhd9.1)
+adhd9$BIC <- BIC(adhd9)
+
+
+
+models1 <- list(adhd1, adhd1.1)
+models2 <- list(adhd2, adhd2.1)
+models3 <- list(adhd3, adhd3.1)
+models4 <- list(adhd4, adhd4.1)
+models5 <- list(adhd5, adhd5.1)
+models6 <- list(adhd6, adhd6.1)
+models7 <- list(adhd7, adhd7.1)
+models8 <- list(adhd8, adhd8.1)
+models9 <- list(adhd9, adhd9.1)
+
+```
+
+```{r, warning=F, results='asis', echo=F}
+
+## Tables
+
+### Table1
+stargazer(models1, type="latex", header=FALSE,
+        dep.var.labels = "Education",
+         title="Chances of Obtaining a Bachelors Degree",
+          covariate.labels=c("ADHD", "Socioeconomic Status", "ADHD:SES"),
+          keep.stat=c("aic", "bic", "adj.rsq", "n"),
+          notes = c("Standard errors in parentheses"))
+
+### Table2
+stargazer(models2, type="latex", header=FALSE,
+        dep.var.labels = "Avoid Problems",
+         title="Chances of Avoiding Problems",
+          covariate.labels=c("ADHD", "Socioeconomic Status", "ADHD:SES"),
+          keep.stat=c("aic", "bic", "adj.rsq", "n"),
+          notes = c("Standard errors in parentheses"))
+
+### Table3
+stargazer(models3, type="latex", header=FALSE,
+        dep.var.labels = "Gut Feeling",
+         title="Chances of Going with the Gut Feeling",
+          covariate.labels=c("ADHD", "Socioeconomic Status", "ADHD:SES"),
+          keep.stat=c("aic", "bic", "adj.rsq", "n"),
+          notes = c("Standard errors in parentheses"))
+
+### Table4
+stargazer(models4, type="latex", header=FALSE,
+        dep.var.labels = "Taking Risks",
+         title="Chances of Liking to Take Risks",
+          covariate.labels=c("ADHD", "Socioeconomic Status", "ADHD:SES"),
+          keep.stat=c("aic", "bic", "adj.rsq", "n"),
+          notes = c("Standard errors in parentheses"))
+
+### Table5
+stargazer(models5, type="latex", header=FALSE,
+        dep.var.labels = "Finishin a Task",
+         title="Chances of Finishing a Task",
+          covariate.labels=c("ADHD", "Socioeconomic Status", "ADHD:SES"),
+          keep.stat=c("aic", "bic", "adj.rsq", "n"),
+          notes = c("Standard errors in parentheses"))
+
+### Table6
+stargazer(models6, type="latex", header=FALSE,
+        dep.var.labels = "Physical Health",
+         title="Chances of Reported Physical Health",
+          covariate.labels=c("ADHD", "Socioeconomic Status", "ADHD:SES"),
+          keep.stat=c("aic", "bic", "adj.rsq", "n"),
+          notes = c("Standard errors in parentheses"))
+
+### Table7
+stargazer(models7, type="latex", header=FALSE,
+        dep.var.labels = "Depression",
+         title="Chances of Depression",
+          covariate.labels=c("ADHD", "Socioeconomic Status", "ADHD:SES"),
+          keep.stat=c("aic", "bic", "adj.rsq", "n"),
+          notes = c("Standard errors in parentheses"))
+
+### Table8
+stargazer(models8, type="latex", header=FALSE,
+        dep.var.labels = "Anxiety/Panic Disorder",
+         title="Chances of Anxiety and Panic Disorder",
+          covariate.labels=c("ADHD", "Socioeconomic Status", "ADHD:SES"),
+          keep.stat=c("aic", "bic", "adj.rsq", "n"),
+          notes = c("Standard errors in parentheses"))
+
+### Table9
+stargazer(models9, type="latex", header=FALSE,
+        dep.var.labels = "Arrested",
+         title="Chances of Being Arrested",
+          covariate.labels=c("ADHD", "Socioeconomic Status", "ADHD:SES"),
+          keep.stat=c("aic", "bic", "adj.rsq", "n"),
+          notes = c("Standard errors in parentheses"))
+
+```
